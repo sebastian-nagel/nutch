@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -464,17 +465,20 @@ public class SegmentReader extends Configured implements
     public long fetchErrors = -1L;
     public long parsed = -1L;
     public long parseErrors = -1L;
+    long fetchStatus[] = new long[CrawlDatum.STATUS_FETCH_MAX+1];
   }
 
   SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
-  public void list(List<Path> dirs, Writer writer) throws Exception {
+  public void list(List<Path> dirs, Writer writer, boolean countFetchStatus)
+      throws Exception {
     writer
         .write("NAME\t\tGENERATED\tFETCHER START\t\tFETCHER END\t\tFETCHED\tPARSED\n");
+    long fetchStatusTotal[] = new long[CrawlDatum.STATUS_FETCH_MAX+1];
     for (int i = 0; i < dirs.size(); i++) {
       Path dir = dirs.get(i);
       SegmentReaderStats stats = new SegmentReaderStats();
-      getStats(dir, stats);
+      getStats(dir, stats, countFetchStatus);
       writer.write(dir.getName() + "\t");
       if (stats.generated == -1)
         writer.write("?");
@@ -502,11 +506,36 @@ public class SegmentReader extends Configured implements
         writer.write(stats.parsed + "");
       writer.write("\n");
       writer.flush();
+      if (countFetchStatus)
+        showFetchStatusCounts(writer, stats.fetchStatus, fetchStatusTotal);
     }
+    if (countFetchStatus && dirs.size() > 1) {
+      writer.write("Sum of fetch status counts over all segments:\n");
+      showFetchStatusCounts(writer, fetchStatusTotal, null);
+    }
+    writer.flush();
   }
 
-  public void getStats(Path segment, final SegmentReaderStats stats)
-      throws Exception {
+  public void showFetchStatusCounts(Writer writer, long[] status,
+      long[] total) throws IOException {
+    for (int j = CrawlDatum.STATUS_DB_MAX + 1;
+        j <= CrawlDatum.STATUS_FETCH_MAX; j++) {
+      if (!CrawlDatum.statNames.containsKey((byte)j))
+        continue;
+      writer.write("\t\t");
+      writer.write("" + status[j]);
+      writer.write("\t");
+      writer.write(CrawlDatum.statNames.get((byte)j));
+      writer.write("\n");
+      writer.flush();
+      if (total != null)
+        total[j] += status[j];
+    }
+    
+  }
+
+  public void getStats(Path segment, final SegmentReaderStats stats,
+      boolean countFetchStatus) throws Exception {
     long cnt = 0L;
     Text key = new Text();
     
@@ -537,6 +566,9 @@ public class SegmentReader extends Configured implements
               start = value.getFetchTime();
             if (value.getFetchTime() > end)
               end = value.getFetchTime();
+            if (countFetchStatus)
+              if (value.getStatus() <= CrawlDatum.STATUS_FETCH_MAX)
+                stats.fetchStatus[value.getStatus()]++;
           }
           mreaders[i].close();
         }
@@ -638,10 +670,13 @@ public class SegmentReader extends Configured implements
       return;
     case MODE_LIST:
       ArrayList<Path> dirs = new ArrayList<Path>();
+      boolean countFetchStatus = false;
       for (int i = 1; i < args.length; i++) {
         if (args[i] == null)
           continue;
-        if (args[i].equals("-dir")) {
+        if (args[i].equals("-fetchstatus"))
+          countFetchStatus = true;
+        else if (args[i].equals("-dir")) {
           Path dir = new Path(args[++i]);
           FileStatus[] fstats = fs.listStatus(dir,
               HadoopFSUtil.getPassDirectoriesFilter(fs));
@@ -652,7 +687,8 @@ public class SegmentReader extends Configured implements
         } else
           dirs.add(new Path(args[i]));
       }
-      segmentReader.list(dirs, new OutputStreamWriter(System.out, "UTF-8"));
+      segmentReader.list(dirs, new OutputStreamWriter(System.out, "UTF-8"),
+          countFetchStatus);
       return;
     case MODE_GET:
       input = args[1];
@@ -697,11 +733,13 @@ public class SegmentReader extends Configured implements
         .println("\t<output>\tname of the (non-existent) output directory.");
     System.err.println();
     System.err
-        .println("* SegmentReader -list (<segment_dir1> ... | -dir <segments>) [general options]");
+        .println("* SegmentReader -list (<segment_dir1> ... | -dir <segments>) [-fetchstatus] [general options]");
     System.err
         .println("  List a synopsis of segments in specified directories, or all segments in");
     System.err
         .println("  a directory <segments>, and print it on System.out\n");
+    System.err
+        .println("\t-fetchstatus\tshow fetch status counts (success, redirect, gone, etc.)\n");
     System.err
         .println("\t<segment_dir1> ...\tlist of segment directories to process");
     System.err
