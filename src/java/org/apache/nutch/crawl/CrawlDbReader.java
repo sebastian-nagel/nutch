@@ -215,10 +215,9 @@ public class CrawlDbReader extends Configured implements Closeable, Tool {
 
   public static class CrawlDbStatCombiner implements
       Reducer<Text, LongWritable, Text, LongWritable> {
-    LongWritable val = new LongWritable();
 
-    public CrawlDbStatCombiner() {
-    }
+    Text key = new Text();
+    LongWritable val = new LongWritable();
 
     public void configure(JobConf job) {
     }
@@ -233,26 +232,36 @@ public class CrawlDbReader extends Configured implements Closeable, Tool {
       long min = Long.MAX_VALUE;
       long max = Long.MIN_VALUE;
       while (values.hasNext()) {
-        LongWritable cnt = values.next();
-        if (cnt.get() < min)
-          min = cnt.get();
-        if (cnt.get() > max)
-          max = cnt.get();
-        total += cnt.get();
+        val = values.next();
+        if (val.get() < min)
+          min = val.get();
+        if (val.get() > max)
+          max = val.get();
+        total += val.get();
       }
-      output.collect(new Text(keyPrefix+"n"), new LongWritable(min));
-      output.collect(new Text(keyPrefix+"x"), new LongWritable(max));
-      output.collect(new Text(keyPrefix+"t"), new LongWritable(total));
+      // A combiner must collect new keys in the sort order defined by the
+      // OutputKeyClass. Text class sorts UTF-8 encoded strings at byte level,
+      // which is nothing else than ASCII-sorting of keys:
+      //  min, total, max ("..n", "..t", "..x")
+      key.set(keyPrefix+"n");
+      val.set(min);
+      output.collect(key, val);
+      key.set(keyPrefix+"t");
+      val.set(total);
+      output.collect(key, val);
+      key.set(keyPrefix+"x");
+      val.set(max);
+      output.collect(key, val);
     }
     
     public void reduce(Text key, Iterator<LongWritable> values,
         OutputCollector<Text, LongWritable> output, Reporter reporter)
         throws IOException {
-      val.set(0L);
       String k = key.toString();
       if (k.equals("sc") || k.equals("ft") || k.equals("fi")) {
         reduceMinMaxTotal(k, values, output, reporter);
       } else {
+        val.set(0L);
         while (values.hasNext()) {
           LongWritable cnt = values.next();
           val.set(val.get() + cnt.get());
@@ -264,6 +273,9 @@ public class CrawlDbReader extends Configured implements Closeable, Tool {
 
   public static class CrawlDbStatReducer implements
       Reducer<Text, LongWritable, Text, LongWritable> {
+
+    LongWritable val = new LongWritable();
+
     public void configure(JobConf job) {
     }
 
@@ -275,44 +287,36 @@ public class CrawlDbReader extends Configured implements Closeable, Tool {
         throws IOException {
 
       String k = key.toString();
-      if (k.equals("T")) {
+      if (k.equals("T") || k.startsWith("status") || k.startsWith("retry")
+          || k.equals("sct") || k.equals("ftt") || k.equals("fit")) {
         // sum all values for this key
         long sum = 0;
         while (values.hasNext()) {
           sum += values.next().get();
         }
         // output sum
-        output.collect(key, new LongWritable(sum));
-      } else if (k.startsWith("status") || k.startsWith("retry")) {
-        LongWritable cnt = new LongWritable();
-        while (values.hasNext()) {
-          LongWritable val = values.next();
-          cnt.set(cnt.get() + val.get());
-        }
-        output.collect(key, cnt);
+        val.set(sum);
+        output.collect(key, val);
       } else if (k.equals("scx") || k.equals("ftx") || k.equals("fix")) {
-        LongWritable cnt = new LongWritable(Long.MIN_VALUE);
+        // maximum
+        long max = Long.MIN_VALUE;
         while (values.hasNext()) {
-          LongWritable val = values.next();
-          if (cnt.get() < val.get())
-            cnt.set(val.get());
+          val = values.next();
+          if (val.get() > max)
+            max = val.get();
         }
-        output.collect(key, cnt);
+        val.set(max);
+        output.collect(key, val);
       } else if (k.equals("scn") || k.equals("ftn") || k.equals("fin")) {
-        LongWritable cnt = new LongWritable(Long.MAX_VALUE);
+        // minimum
+        long min = Long.MAX_VALUE;
         while (values.hasNext()) {
-          LongWritable val = values.next();
-          if (cnt.get() > val.get())
-            cnt.set(val.get());
+          val = values.next();
+          if (val.get() < min)
+            min = val.get();
         }
-        output.collect(key, cnt);
-      } else if (k.equals("sct") || k.equals("ftt") || k.equals("fit")) {
-        LongWritable cnt = new LongWritable();
-        while (values.hasNext()) {
-          LongWritable val = values.next();
-          cnt.set(cnt.get() + val.get());
-        }
-        output.collect(key, cnt);
+        val.set(min);
+        output.collect(key, val);
       }
     }
   }
@@ -405,22 +409,10 @@ public class CrawlDbReader extends Configured implements Closeable, Tool {
 			  String k = key.toString();
 			  LongWritable val = stats.get(k);
 			  if (val == null) {
-				  val = new LongWritable();
-				  if (k.equals("scx") || k.equals("ftx") || k.equals("fix"))
-					  val.set(Long.MIN_VALUE);
-				  if (k.equals("scn") || k.equals("ftn") || k.equals("fin"))
-					  val.set(Long.MAX_VALUE);
+				  val = new LongWritable(0L);
 				  stats.put(k, val);
 			  }
-			  if (k.equals("scx") || k.equals("ftx") || k.equals("fix")) {
-				  if (val.get() < value.get())
-					  val.set(value.get());
-			  } else if (k.equals("scn") || k.equals("ftn") || k.equals("fin")) {
-				  if (val.get() > value.get())
-					  val.set(value.get());
-			  } else {
-				  val.set(val.get() + value.get());
-			  }
+			  val.set(value.get());
 		  }
 		  reader.close();
 	  }
