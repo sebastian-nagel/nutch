@@ -24,6 +24,7 @@ import org.apache.hadoop.io.*;
 import org.apache.hadoop.io.MapFile.Writer.Option;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.SequenceFile.Metadata;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.mapred.*;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.ReflectionUtils;
 
 /* Parse content in a segment. */
 public class ParseOutputFormat implements OutputFormat<Text, Parse> {
@@ -116,6 +118,10 @@ public class ParseOutputFormat implements OutputFormat<Text, Parse> {
         : maxOutlinksPerPage;
     final CompressionType compType = SequenceFileOutputFormat
         .getOutputCompressionType(job);
+    final Class<? extends CompressionCodec> compCodecClass = SequenceFileOutputFormat
+        .getOutputCompressorClass(job, DefaultCodec.class);
+    final CompressionCodec compCodec = ReflectionUtils.newInstance(compCodecClass, job);
+
     Path out = FileOutputFormat.getOutputPath(job);
 
     Path text = new Path(new Path(out, ParseText.DIR_NAME), name);
@@ -129,7 +135,8 @@ public class ParseOutputFormat implements OutputFormat<Text, Parse> {
     Option tKeyClassOpt = (Option) MapFile.Writer.keyClass(Text.class);
     org.apache.hadoop.io.SequenceFile.Writer.Option tValClassOpt = SequenceFile.Writer.valueClass(ParseText.class);
     org.apache.hadoop.io.SequenceFile.Writer.Option tProgressOpt = SequenceFile.Writer.progressable(progress);
-    org.apache.hadoop.io.SequenceFile.Writer.Option tCompOpt = SequenceFile.Writer.compression(CompressionType.RECORD);
+    org.apache.hadoop.io.SequenceFile.Writer.Option tCompOpt = SequenceFile.Writer
+        .compression(CompressionType.RECORD, compCodec);
     
     final MapFile.Writer textOut = new MapFile.Writer(job, text,
         tKeyClassOpt, tValClassOpt, tCompOpt, tProgressOpt);
@@ -138,7 +145,8 @@ public class ParseOutputFormat implements OutputFormat<Text, Parse> {
     Option dKeyClassOpt = (Option) MapFile.Writer.keyClass(Text.class);
     org.apache.hadoop.io.SequenceFile.Writer.Option dValClassOpt = SequenceFile.Writer.valueClass(ParseData.class);
     org.apache.hadoop.io.SequenceFile.Writer.Option dProgressOpt = SequenceFile.Writer.progressable(progress);
-    org.apache.hadoop.io.SequenceFile.Writer.Option dCompOpt = SequenceFile.Writer.compression(compType);
+    org.apache.hadoop.io.SequenceFile.Writer.Option dCompOpt = SequenceFile.Writer
+        .compression(compType, compCodec);
 
     final MapFile.Writer dataOut = new MapFile.Writer(job, data,
         dKeyClassOpt, dValClassOpt, dCompOpt, dProgressOpt);
@@ -268,7 +276,7 @@ public class ParseOutputFormat implements OutputFormat<Text, Parse> {
 
           targets.add(new SimpleEntry(targetUrl, target));
 
-          // OVerwrite URL in Outlink object with normalized URL (NUTCH-1174)
+          // Overwrite URL in Outlink object with normalized URL (NUTCH-1174)
           links[i].setUrl(toUrl);
           outlinkList.add(links[i]);
           validCount++;

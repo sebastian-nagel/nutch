@@ -25,7 +25,7 @@ import org.apache.hadoop.conf.*;
 import org.apache.commons.cli.Options;
 import org.apache.nutch.util.NutchConfiguration;
 
-/* The text conversion of page's content, stored using gzip compression.
+/* The text conversion of page's content.
  * @see Parse#getText()
  */
 public final class ParseText implements Writable {

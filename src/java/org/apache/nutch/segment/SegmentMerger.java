@@ -37,6 +37,7 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.MapFile.Writer.Option;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.SequenceFile.Metadata;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileOutputFormat;
@@ -54,6 +55,7 @@ import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.mapred.SequenceFileRecordReader;
 import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.nutch.crawl.CrawlDatum;
@@ -287,14 +289,10 @@ public class SegmentMerger extends Configured implements Tool,
                 dirName), name);
           }
           
-//          Option rKeyClassOpt = MapFile.Writer.keyClass(Text.class);
-//          org.apache.hadoop.io.SequenceFile.Writer.Option rValClassOpt = SequenceFile.Writer.valueClass(CrawlDatum.class);
-//          Option rProgressOpt = (Option) SequenceFile.Writer.progressable(progress);
-//          Option rCompOpt = (Option) SequenceFile.Writer.compression(SequenceFileOutputFormat.getOutputCompressionType(job));
-//          Option rFileOpt = (Option) SequenceFile.Writer.file(wname);
-          
-          //res = SequenceFile.createWriter(job, rFileOpt, rKeyClassOpt,
-           //   rValClassOpt, rCompOpt, rProgressOpt);
+          final Class<? extends CompressionCodec> compCodecClass = SequenceFileOutputFormat
+              .getOutputCompressorClass(job, DefaultCodec.class);
+          final CompressionCodec compCodec = ReflectionUtils
+              .newInstance(compCodecClass, job);
           
           res = SequenceFile.createWriter(job, SequenceFile.Writer.file(wname),
               SequenceFile.Writer.keyClass(Text.class),
@@ -302,7 +300,9 @@ public class SegmentMerger extends Configured implements Tool,
               SequenceFile.Writer.bufferSize(fs.getConf().getInt("io.file.buffer.size",4096)),
               SequenceFile.Writer.replication(fs.getDefaultReplication(wname)),
               SequenceFile.Writer.blockSize(1073741824),
-              SequenceFile.Writer.compression(SequenceFileOutputFormat.getOutputCompressionType(job), new DefaultCodec()),
+              SequenceFile.Writer.compression(
+                  SequenceFileOutputFormat.getOutputCompressionType(job),
+                  compCodec),
               SequenceFile.Writer.progressable(progress),
               SequenceFile.Writer.metadata(new Metadata())); 
           
@@ -334,10 +334,16 @@ public class SegmentMerger extends Configured implements Tool,
             compType = CompressionType.RECORD;
           }
           
+          final Class<? extends CompressionCodec> compCodecClass = SequenceFileOutputFormat
+              .getOutputCompressorClass(job, DefaultCodec.class);
+          final CompressionCodec compCodec = ReflectionUtils
+              .newInstance(compCodecClass, job);
+
           Option rKeyClassOpt = (Option) MapFile.Writer.keyClass(Text.class);
           org.apache.hadoop.io.SequenceFile.Writer.Option rValClassOpt = SequenceFile.Writer.valueClass(clazz);
           org.apache.hadoop.io.SequenceFile.Writer.Option rProgressOpt = SequenceFile.Writer.progressable(progress);
-          org.apache.hadoop.io.SequenceFile.Writer.Option rCompOpt = SequenceFile.Writer.compression(compType);
+          org.apache.hadoop.io.SequenceFile.Writer.Option rCompOpt = SequenceFile.Writer
+              .compression(compType, compCodec);
           
           res = new MapFile.Writer(job, wname, rKeyClassOpt,
               rValClassOpt, rCompOpt, rProgressOpt);

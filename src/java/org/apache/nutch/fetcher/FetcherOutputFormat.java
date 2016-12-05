@@ -27,6 +27,9 @@ import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.MapFile.Writer.Option;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.mapred.FileOutputFormat;
@@ -37,6 +40,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.nutch.parse.Parse;
 import org.apache.nutch.parse.ParseOutputFormat;
 import org.apache.nutch.protocol.Content;
@@ -66,11 +70,15 @@ public class FetcherOutputFormat implements OutputFormat<Text, NutchWritable> {
 
     final CompressionType compType = SequenceFileOutputFormat
         .getOutputCompressionType(job);
+    final Class<? extends CompressionCodec> compCodecClass = SequenceFileOutputFormat
+        .getOutputCompressorClass(job, DefaultCodec.class);
+    final CompressionCodec compCodec = ReflectionUtils.newInstance(compCodecClass, job);
 
     Option fKeyClassOpt = MapFile.Writer.keyClass(Text.class);
     org.apache.hadoop.io.SequenceFile.Writer.Option fValClassOpt = SequenceFile.Writer.valueClass(CrawlDatum.class);
     org.apache.hadoop.io.SequenceFile.Writer.Option fProgressOpt = SequenceFile.Writer.progressable(progress);
-    org.apache.hadoop.io.SequenceFile.Writer.Option fCompOpt = SequenceFile.Writer.compression(compType);
+    org.apache.hadoop.io.SequenceFile.Writer.Option fCompOpt = SequenceFile.Writer
+        .compression(compType, compCodec);
 
     final MapFile.Writer fetchOut = new MapFile.Writer(job,
         fetch, fKeyClassOpt, fValClassOpt, fCompOpt, fProgressOpt);
@@ -84,7 +92,8 @@ public class FetcherOutputFormat implements OutputFormat<Text, NutchWritable> {
           Option cKeyClassOpt = MapFile.Writer.keyClass(Text.class);
           org.apache.hadoop.io.SequenceFile.Writer.Option cValClassOpt = SequenceFile.Writer.valueClass(Content.class);
           org.apache.hadoop.io.SequenceFile.Writer.Option cProgressOpt = SequenceFile.Writer.progressable(progress);
-          org.apache.hadoop.io.SequenceFile.Writer.Option cCompOpt = SequenceFile.Writer.compression(compType);
+          org.apache.hadoop.io.SequenceFile.Writer.Option cCompOpt = SequenceFile.Writer
+              .compression(compType, compCodec);
           contentOut = new MapFile.Writer(job, content,
               cKeyClassOpt, cValClassOpt, cCompOpt, cProgressOpt);
         }
