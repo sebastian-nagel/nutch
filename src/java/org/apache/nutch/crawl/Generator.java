@@ -403,9 +403,9 @@ public class Generator extends NutchTool implements Tool {
           if (byDomain) {
             hostordomain = URLUtil.getDomainName(u);
           } else {
-            hostordomain = new URL(urlString).getHost();
+            hostordomain = u.getHost();
           }
-        } catch (Exception e) {
+        } catch (MalformedURLException e) {
           LOG.warn("Malformed URL: '" + urlString + "', skipping ("
               + StringUtils.stringifyException(e) + ")");
           reporter.getCounter("Generator", "MALFORMED_URL").increment(1);
