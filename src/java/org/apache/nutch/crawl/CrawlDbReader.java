@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashMap;
@@ -207,10 +208,14 @@ public class CrawlDbReader extends Configured implements Closeable, Tool {
       output.collect(new Text("fi"),
           new LongWritable(value.getFetchInterval()));
       if (sort) {
-        URL u = new URL(key.toString());
-        String host = u.getHost();
-        output.collect(new Text("status " + value.getStatus() + " " + host),
-            COUNT_1);
+        try {
+          URL u = new URL(key.toString());
+          String host = u.getHost();
+          output.collect(new Text("status " + value.getStatus() + " " + host),
+              COUNT_1);
+        } catch (MalformedURLException e) {
+          LOG.error("Failed to get host from URL {}: {}", key.toString(), e.getMessage());
+        }
       }
     }
   }

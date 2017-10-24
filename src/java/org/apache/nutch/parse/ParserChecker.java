@@ -32,6 +32,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.nutch.crawl.CrawlDatum;
 import org.apache.nutch.crawl.SignatureFactory;
+import org.apache.nutch.plugin.PluginRepository;
 import org.apache.nutch.protocol.Content;
 import org.apache.nutch.protocol.Protocol;
 import org.apache.nutch.protocol.ProtocolFactory;
@@ -90,6 +91,10 @@ public class ParserChecker implements Tool {
       LOG.error(usage);
       return (-1);
     }
+
+    // initialize plugins early to register URL stream handlers to support
+    // custom protocol implementations
+    PluginRepository.get(getConf());
 
     // used to simulate the metadata propagated from injection
     HashMap<String, String> metadata = new HashMap<>();

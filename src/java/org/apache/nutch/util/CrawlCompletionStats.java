@@ -20,6 +20,7 @@ package org.apache.nutch.util;
 import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import org.slf4j.Logger;
@@ -193,7 +194,14 @@ public class CrawlCompletionStats extends Configured implements Tool {
     public void map(Text urlText, CrawlDatum datum, Context context)
         throws IOException, InterruptedException {
 
-      URL url = new URL(urlText.toString());
+      URL url;
+      try {
+        url = new URL(urlText.toString());
+      } catch (MalformedURLException e) {
+        LOG.error("Failed to get host or domain from URL {}: {}",
+            urlText, e.getMessage());
+        return;
+      }
       String out = "";
       switch (mode) {
         case MODE_HOST:

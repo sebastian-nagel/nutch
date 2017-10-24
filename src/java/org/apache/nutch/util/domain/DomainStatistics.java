@@ -20,6 +20,7 @@ package org.apache.nutch.util.domain;
 import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import org.slf4j.Logger;
@@ -167,7 +168,14 @@ public class DomainStatistics extends Configured implements Tool {
           || datum.getStatus() == CrawlDatum.STATUS_DB_NOTMODIFIED) {
 
         try {
-          URL url = new URL(urlText.toString());
+          URL url;
+          try {
+            url = new URL(urlText.toString());
+          } catch (MalformedURLException e) {
+            LOG.error("Failed to get host or domain from URL {}: {}",
+                urlText, e.getMessage());
+            return;
+          }
           String out = null;
           switch (mode) {
           case MODE_HOST:

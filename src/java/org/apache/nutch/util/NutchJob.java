@@ -19,12 +19,18 @@ package org.apache.nutch.util;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.nutch.plugin.PluginRepository;
 
 /** A {@link JobConf} for Nutch jobs. */
 public class NutchJob extends JobConf {
 
   public NutchJob(Configuration conf) {
     super(conf, NutchJob.class);
+    if (conf != null) {
+      // initialize plugins early to register URL stream handlers to support
+      // custom protocol implementations
+      PluginRepository.get(conf);
+    }
   }
 
 }
