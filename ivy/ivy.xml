@@ -52,7 +52,7 @@
 		<dependency org="com.tdunning" name="t-digest" rev="3.2" />
 		
 		<!-- Hadoop Dependencies -->
-		<dependency org="org.apache.hadoop" name="hadoop-common" rev="2.7.4" conf="*->default">
+		<dependency org="org.apache.hadoop" name="hadoop-common" rev="3.1.0" conf="*->default">
 			<exclude org="hsqldb" name="hsqldb" />
 			<exclude org="net.sf.kosmosfs" name="kfs" />
 			<exclude org="net.java.dev.jets3t" name="jets3t" />
@@ -60,9 +60,9 @@
 			<exclude org="org.mortbay.jetty" name="jsp-*" />
 			<exclude org="ant" name="ant" />
 		</dependency>
-		<dependency org="org.apache.hadoop" name="hadoop-hdfs" rev="2.7.4" conf="*->default"/>
-		<dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-core" rev="2.7.4" conf="*->default"/>
-		<dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient" rev="2.7.4" conf="*->default"/>
+		<dependency org="org.apache.hadoop" name="hadoop-hdfs" rev="3.1.0" conf="*->default"/>
+		<dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-core" rev="3.1.0" conf="*->default"/>
+		<dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient" rev="3.1.0" conf="*->default"/>
 		<!-- End of Hadoop Dependencies -->
 
 		<dependency org="org.apache.tika" name="tika-core" rev="1.18" />
@@ -131,10 +131,12 @@
 			<exclude org="org.json"/>
 		</dependency>
 
+    <!-- NutchServer requires jetty -->
+    <dependency org="org.mortbay.jetty" name="jetty" rev="6.1.26" />
+
 		
 		<!-- RabbitMQ dependencies -->
 		<dependency org="com.rabbitmq" name="amqp-client" rev="5.2.0" conf="*->default" />
-
 
 		<!--Added Because of Elasticsearch JEST client-->
 		<!--TODO refactor these to indexer-elastic-rest plugin somehow, currently doesn't resolve correctly-->
