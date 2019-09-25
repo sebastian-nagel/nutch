@@ -13,21 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:16.04
-MAINTAINER Michael Joyce <joyce@apache.org>
+FROM ubuntu:18.04
+MAINTAINER Apache Nutch Committers <dev@nutch.apache.org>
 
 WORKDIR /root/
 
 
 # Install dependencies
 RUN apt update
-RUN apt install -y ant openssh-server vim telnet git rsync curl openjdk-8-jdk-headless
+RUN apt install -y ant git openjdk-8-jdk-headless
 
 # Set up JAVA_HOME
 RUN echo 'export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64' >> $HOME/.bashrc
 
-# Checkout and build the nutch trunk
-RUN git clone https://github.com/apache/nutch.git nutch_source && cd nutch_source && ant runtime
+# Checkout and build Nutch (testing IVY-1586)
+RUN git clone https://github.com/sebastian-nagel/nutch.git nutch_source
+RUN cd nutch_source && git checkout test-IVY-1586 && git pull origin test-IVY-1586 && git show
+# test with intermediate containers to allow tracing the errors down:
+# 1. Nutch core
+RUN cd nutch_source && ant compile-core-test
+RUN cd nutch_source && ant clean compile-core-test
+# 2. Nutch plugins
+RUN cd nutch_source && ant clean compile-plugins
+RUN cd nutch_source && ant clean compile-plugins
+# 3. build everythin
+RUN cd nutch_source && ant clean runtime
+RUN cd nutch_source && ant clean runtime
+# 4. run all unit tests
+RUN cd nutch_source && ant clean test
 
 # Convenience symlink to Nutch runtime local
 RUN ln -s nutch_source/runtime/local $HOME/nutch
