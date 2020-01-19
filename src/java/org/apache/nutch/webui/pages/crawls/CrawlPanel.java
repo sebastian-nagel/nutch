@@ -83,10 +83,10 @@ public class CrawlPanel extends Modal {
     add(form);
   }
 
-  public void setModel(IModel<Crawl> model) {
-    form.setModel(model);
-  }
-
+//  public void setModel(IModel<Crawl> model) {
+//    form.setModel(model);
+//  }
+//
   private List<Integer> getNumbersOfRounds() {
     List<Integer> numbers = Lists.newArrayList();
     for (int i = 1; i <= MAX_ROUNDS; i++) {

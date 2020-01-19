@@ -74,7 +74,7 @@ public abstract class AbstractBasePage<T> extends GenericWebPage<T> {
 
   public AbstractBasePage() {
     navbar = new VerticalMenu("navigation");
-    navbar.brandName(Model.of("Apache Nutch GUI"));
+//    navbar.brandName(Model.of("Apache Nutch GUI"));
     navbar.setInverted(true);
     navbar.setPosition(Position.TOP);
     add(navbar);

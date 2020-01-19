@@ -16,6 +16,10 @@
  */
 package org.apache.nutch.webui;
 
+import java.util.EnumSet;
+
+import javax.servlet.DispatcherType;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -26,11 +30,10 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.wicket.protocol.http.WicketFilter;
 import org.apache.wicket.spring.SpringWebApplicationFactory;
-import org.mortbay.jetty.Handler;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.DefaultServlet;
-import org.mortbay.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.request.RequestContextListener;
@@ -67,7 +70,9 @@ public class NutchUiServer {
 
   private static void startServer() throws Exception, InterruptedException {
     Server server = new Server(port);
-    Context context = new Context(server, "/", Context.SESSIONS);
+    ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+    context.setContextPath("/");
+    server.setHandler(context);
     context.addServlet(DefaultServlet.class, "/*");
 
     context.addEventListener(new ContextLoaderListener(getContext()));
@@ -77,7 +82,7 @@ public class NutchUiServer {
     filter.setFilterPath("/");
     FilterHolder holder = new FilterHolder(filter);
     holder.setInitParameter("applicationFactoryClassName", APP_FACTORY_NAME);
-    context.addFilter(holder, "/*", Handler.DEFAULT);
+    context.addFilter(holder, "/*", EnumSet.of(DispatcherType.REQUEST));
 
     server.setHandler(context);
     server.start();

@@ -71,8 +71,8 @@ public class InstancePanel extends Modal {
     add(form);
   }
 
-  public void setModel(IModel<NutchInstance> model) {
-    form.setModel(model);
-  }
-
+//  public void setModel(IModel<NutchInstance> model) {
+//    form.setModel(model);
+//  }
+//
 }
