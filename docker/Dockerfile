@@ -24,10 +24,6 @@ ARG BUILD_MODE=0
 
 FROM alpine:3.13 AS base
 
-ARG SERVER_PORT=8081
-ARG SERVER_HOST=0.0.0.0
-ARG WEBAPP_PORT=8080
-
 LABEL maintainer="Apache Nutch Developers <dev@nutch.apache.org>"
 LABEL org.opencontainers.image.authors="Apache Nutch Developers <dev@nutch.apache.org>"
 LABEL org.opencontainers.image.description="Docker image for running Apache Nutch, a highly extensible and scalable open source web crawler software project. Visit the project website at https://nutch.apache.org"
@@ -67,6 +63,8 @@ RUN echo "Nutch master branch source install with 'crawl' and 'nutch' scripts on
 FROM base AS branch-version-1
 
 RUN echo "Nutch master branch source install with 'crawl' and 'nutch' scripts on PATH and Nutch REST Server on $SERVER_HOST:$SERVER_PORT"
+ARG SERVER_PORT=8081
+ARG SERVER_HOST=0.0.0.0
 
 ENV SERVER_PORT=$SERVER_PORT
 ENV SERVER_HOST=$SERVER_HOST
@@ -84,6 +82,9 @@ ENTRYPOINT [ "supervisord", "--nodaemon", "--configuration", "/etc/supervisord.c
 FROM base AS branch-version-2
 
 RUN echo "Nutch master branch source install with 'crawl' and 'nutch' scripts on PATH, Nutch REST Server on $SERVER_HOST:$SERVER_PORT and WebApp on this container port $WEBAPP_PORT"
+ARG SERVER_PORT=8081
+ARG SERVER_HOST=0.0.0.0
+ARG WEBAPP_PORT=8080
 
 ENV SERVER_PORT=$SERVER_PORT
 ENV SERVER_HOST=$SERVER_HOST
