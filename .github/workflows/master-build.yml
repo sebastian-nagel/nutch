@@ -90,7 +90,7 @@ jobs:
         run: echo "buildconf"
         # run if the build configuration or both 'core' and 'plugins' files were changed
       - name: test all
-        if: ${{ steps.filter.outputs.buildconf == 'true' || ( steps.filter.outputs.core  == 'true' && steps.filter.outputs.plugin  == 'true' ) }}
+        if: ${{ steps.filter.outputs.buildconf == 'true' || ( steps.filter.outputs.core  == 'true' && steps.filter.outputs.plugins  == 'true' ) }}
         run: echo "test all"
         # run: ant clean test -buildfile build.xml
       # run only if 'core' files were changed
